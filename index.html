@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Massang Box - LIFF</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --primary-blue: #1c274c;
+      --primary-red: #d32f2f;
+      --accent-green: #28a745;
+      --bg-main: #f4f5f7;
+      --border-color: #e0e0e0;
+      --radius-md: 8px;
+      --shadow-sm: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    * { box-sizing: border-box; }
+    body { font-family: 'Sarabun', sans-serif; background: var(--bg-main); margin: 0; padding: 0; color: #333; line-height: 1.5; }
+
+    .liff-header { display: flex; align-items: center; background: #fff; padding: 15px; border-bottom: 1px solid var(--border-color); position: sticky; top: 0; z-index: 10; }
+    .btn-back { border: 1px solid #ccc; background: #fff; border-radius: 6px; padding: 6px 14px; font-size: 16px; cursor: pointer; color: #333; }
+    .liff-header-title { flex: 1; text-align: center; font-weight: 700; font-size: 18px; color: var(--primary-blue); margin-right: 40px; }
+
+    .content { padding: 20px; max-width: 500px; margin: 0 auto; padding-bottom: 90px; }
+    .instruction { color: var(--primary-blue); font-weight: 600; margin-bottom: 8px; font-size: 15px; line-height: 1.5; }
+    .warning { color: var(--primary-red); font-size: 13px; margin-bottom: 25px; line-height: 1.4; }
+
+    .section-title { font-weight: 700; color: var(--primary-red); font-size: 16px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+    .card { background: #fff; border-radius: 10px; padding: 18px; margin-bottom: 25px; box-shadow: var(--shadow-sm); }
+    .info-row { display: flex; margin-bottom: 12px; font-size: 14px; line-height: 1.4; }
+    .info-row:last-child { margin-bottom: 0; }
+    .info-label { width: 100px; font-weight: 600; color: var(--primary-blue); flex-shrink: 0; }
+    .info-value { flex: 1; color: #555; word-break: break-word; }
+
+    .reply-section { margin-top: 10px; }
+    .reply-title { font-weight: 700; color: var(--primary-blue); font-size: 16px; margin-bottom: 10px; }
+    textarea { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: var(--radius-md); font-family: 'Sarabun'; font-size: 14px; min-height: 100px; outline: none; box-sizing: border-box; }
+    textarea:focus { border-color: var(--primary-blue); }
+
+    .upload-btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 12px; background: #f8f9fa; border: 1px dashed #aaa; border-radius: var(--radius-md); color: #555; font-family: 'Sarabun'; cursor: pointer; font-size: 14px; margin: 10px 0 5px; box-sizing: border-box; }
+    .upload-note { font-size: 12px; color: var(--primary-red); }
+
+    .bottom-bar { position: fixed; bottom: 0; left: 0; width: 100%; background: #fff; padding: 15px; box-sizing: border-box; box-shadow: 0 -2px 10px rgba(0,0,0,0.05); z-index: 10; }
+    .btn-submit { width: 100%; background: #6c757d; color: #fff; border: none; padding: 14px; border-radius: var(--radius-md); font-size: 16px; font-weight: 700; font-family: 'Sarabun'; cursor: pointer; transition: background 0.3s; }
+    .btn-submit:disabled { background: #ccc; cursor: not-allowed; }
+    .btn-submit.active { background: #4b5675; }
+
+    .debug-box { background: #fff3cd; border: 1px solid #ffc107; border-radius: var(--radius-md); padding: 12px; margin: 15px 20px; font-size: 12px; color: #856404; word-break: break-all; display: none; }
+    .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); display: flex; align-items: center; justify-content: center; z-index: 999; }
+    .loading-overlay.hide { display: none; }
+    .spinner { color: var(--primary-blue); font-size: 24px; }
+  </style>
+</head>
+<body>
+
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="spinner"><i class="fa-solid fa-circle-notch fa-spin"></i> กำลังโหลดข้อมูล...</div>
+  </div>
+
+  <div class="liff-header">
+    <button class="btn-back" onclick="closeLiff()"><i class="fa-solid fa-chevron-left"></i></button>
+    <div class="liff-header-title" id="val-tracking">กำลังโหลด...</div>
+  </div>
+
+  <div class="debug-box" id="debugBox"></div>
+
+  <div class="content">
+    <div class="instruction" id="val-instruction">กำลังดึงข้อมูลคำสั่งการ...</div>
+    <div class="warning">* ทั้งนี้ เจ้าหน้าที่ติดต่อผู้รับ/โทรศัพท์ก่อนนำส่ง เมื่อจ่ายเสร็จสิ้นให้ปรับสถานะพร้อมแนบหลักฐานภาพถ่ายให้เรียบร้อย</div>
+
+    <div class="section-title"><i class="fa-regular fa-user"></i> ข้อมูลผู้ฝาก</div>
+    <div class="card">
+      <div class="info-row"><div class="info-label">ชื่อ-นามสกุล</div><div class="info-value" id="val-sender-name">-</div></div>
+      <div class="info-row"><div class="info-label">ที่อยู่</div><div class="info-value" id="val-sender-address">-</div></div>
+      <div class="info-row"><div class="info-label">เบอร์ติดต่อ</div><div class="info-value" id="val-sender-phone">-</div></div>
+    </div>
+
+    <div class="section-title"><i class="fa-solid fa-house-chimney"></i> ข้อมูลผู้รับ</div>
+    <div class="card">
+      <div class="info-row"><div class="info-label">ชื่อ-นามสกุล</div><div class="info-value" id="val-receiver-name">-</div></div>
+      <div class="info-row"><div class="info-label">ที่อยู่</div><div class="info-value" id="val-receiver-address">-</div></div>
+      <div class="info-row"><div class="info-label">เบอร์ติดต่อ</div><div class="info-value" id="val-receiver-phone">-</div></div>
+      <div class="info-row"><div class="info-label">ราคา(บาท)</div><div class="info-value" id="val-parcel-price">-</div></div>
+      <div class="info-row"><div class="info-label">สถานะล่าสุด</div><div class="info-value" id="val-current-status">-</div></div>
+    </div>
+
+    <div class="reply-section">
+      <div class="reply-title">ตอบกลับลูกค้า</div>
+      <textarea id="replyMsg" placeholder="พิมพ์ข้อความตอบกลับที่นี่..."></textarea>
+      <input type="file" id="uploadFile" style="display:none" accept="image/*">
+      <button class="upload-btn" onclick="document.getElementById('uploadFile').click()">
+        <i class="fa-regular fa-image"></i> อัปโหลดรูปภาพหลักฐาน
+      </button>
+      <div class="upload-note">* รูปภาพลายเซ็น / หลักฐานการนำส่ง</div>
+    </div>
+  </div>
+
+  <div class="bottom-bar">
+    <button class="btn-submit" id="submitBtn" disabled>กำลังดึงข้อมูล...</button>
+  </div>
+
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script>
+    // ==========================================
+    // CONFIG — แก้ตรงนี้ตามโปรเจคของคุณ
+    // ==========================================
+    var LIFF_ID = "2009675119-qtQ9cDGR";
+    var GAS_URL = "https://script.google.com/macros/s/AKfycbyKJOyM0rMGwnHrgzGxuiZlQDEh4jlGS7weg9OsgehctIpr1NRNHikJUh0rk_F1A-qf/exec";
+
+    var imageBase64 = null;
+    var imageMimeType = null;
+    var imageFilename = null;
+
+    // ==========================================
+    // ดึง track จาก URL ตรง ๆ (ไม่ต้อง parse liff.state แล้ว!)
+    // เพราะ GitHub Pages ไม่ rewrite URL เหมือน GAS
+    // ==========================================
+    function getTrackId() {
+      var params = new URLSearchParams(window.location.search);
+      return params.get('track');
+    }
+
+    function closeLiff() {
+      if (typeof liff !== 'undefined' && liff.isInClient()) {
+        liff.closeWindow();
+      } else {
+        window.close();
+      }
+    }
+
+    function showDebug(info) {
+      var box = document.getElementById('debugBox');
+      box.style.display = 'block';
+      box.innerHTML = '<strong>Debug (แคปส่งแอดมิน):</strong><br>' + info;
+    }
+
+    function hideLoading() {
+      document.getElementById('loadingOverlay').classList.add('hide');
+    }
+
+    // ==========================================
+    // เรียก GAS API ผ่าน fetch (แทน google.script.run)
+    // ==========================================
+    function callGAS(action, data) {
+      var url = GAS_URL + "?action=" + action;
+      
+      if (data && action === 'getTaskData') {
+        url += "&track=" + encodeURIComponent(data.track);
+        return fetch(url).then(function(r) { return r.json(); });
+      }
+      
+      // สำหรับ submitReply ใช้ POST
+      return fetch(GAS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'action=' + action + '&payload=' + encodeURIComponent(JSON.stringify(data))
+      }).then(function(r) { return r.json(); });
+    }
+
+    // ==========================================
+    // โหลดข้อมูล Ticket
+    // ==========================================
+    function loadTaskInfo() {
+      var trackId = getTrackId();
+
+      if (!trackId) {
+        hideLoading();
+        document.getElementById('val-tracking').innerText = "ไม่พบรหัสพัสดุ";
+        document.getElementById('val-instruction').innerText = "กรุณาเปิดลิงก์จากกลุ่ม LINE";
+        showDebug('track = NULL<br>URL: ' + window.location.href);
+        return;
+      }
+
+      document.getElementById('val-tracking').innerText = "กำลังค้นหา #" + trackId;
+
+      callGAS('getTaskData', { track: trackId })
+        .then(function(task) {
+          hideLoading();
+          var btn = document.getElementById('submitBtn');
+
+          if (task && task.TrackingNumber) {
+            document.getElementById('val-tracking').innerText = '#' + task.TrackingNumber;
+            document.getElementById('val-instruction').innerText = task.Instruction || "-";
+            document.getElementById('val-sender-name').innerText = task.Sender_Name || "-";
+            document.getElementById('val-sender-address').innerText = task.Sender_Address || "-";
+            document.getElementById('val-sender-phone').innerText = task.Sender_Phone || "-";
+            document.getElementById('val-receiver-name').innerText = task.Receiver_Name || "-";
+            document.getElementById('val-receiver-address').innerText = task.Receiver_Address || "-";
+            document.getElementById('val-receiver-phone').innerText = task.Receiver_Phone || "-";
+            document.getElementById('val-parcel-price').innerText = task.Parcel_Price || "-";
+            document.getElementById('val-current-status').innerText = task.Current_Status || "-";
+
+            btn.innerText = 'ส่งคำตอบ';
+            btn.disabled = false;
+            btn.classList.add('active');
+          } else {
+            document.getElementById('val-tracking').innerText = "ไม่พบข้อมูล";
+            document.getElementById('val-instruction').innerText = "ไม่พบเลขพัสดุ " + trackId + " ในระบบ";
+            showDebug('track = ' + trackId + '<br>Response: ' + JSON.stringify(task));
+          }
+        })
+        .catch(function(err) {
+          hideLoading();
+          document.getElementById('val-tracking').innerText = "เกิดข้อผิดพลาด";
+          document.getElementById('val-instruction').innerText = err.message || "ไม่สามารถเชื่อมต่อ Backend ได้";
+          showDebug('Error: ' + err.message + '<br>URL: ' + GAS_URL);
+        });
+    }
+
+    // ==========================================
+    // Init LIFF แล้วโหลดข้อมูล
+    // ==========================================
+    window.onload = function() {
+      if (typeof liff !== 'undefined') {
+        liff.init({ liffId: LIFF_ID }).then(function() {
+          loadTaskInfo();
+        }).catch(function(err) {
+          console.warn("LIFF init failed:", err);
+          loadTaskInfo();
+        });
+      } else {
+        loadTaskInfo();
+      }
+    };
+
+    // ==========================================
+    // อัปโหลดรูป
+    // ==========================================
+    document.getElementById('uploadFile').addEventListener('change', function(e) {
+      var file = e.target.files[0];
+      if (!file) return;
+      var btn = document.querySelector('.upload-btn');
+      btn.innerHTML = '<i class="fa-solid fa-check" style="color:#28a745;"></i> แนบรูปแล้ว: ' + file.name;
+      btn.style.borderColor = '#28a745';
+      btn.style.backgroundColor = '#f8fff9';
+      imageMimeType = file.type;
+      imageFilename = file.name;
+      var reader = new FileReader();
+      reader.onload = function(ev) { imageBase64 = ev.target.result.split(',')[1]; };
+      reader.readAsDataURL(file);
+    });
+
+    // ==========================================
+    // ส่งคำตอบ
+    // ==========================================
+    document.getElementById('submitBtn').addEventListener('click', function() {
+      var replyText = document.getElementById('replyMsg').value;
+      var trackingText = document.getElementById('val-tracking').innerText;
+      var trackingNumber = trackingText.replace('#', '').trim();
+
+      if (!replyText && !imageBase64) {
+        alert('กรุณาระบุข้อความ หรือแนบรูปภาพหลักฐานก่อนส่งครับ');
+        return;
+      }
+
+      var btn = document.getElementById('submitBtn');
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังส่งข้อมูล...';
+      btn.disabled = true;
+      btn.classList.remove('active');
+
+      callGAS('submitReply', {
+        trackingNumber: trackingNumber,
+        replyText: replyText,
+        imageB64: imageBase64,
+        mimeType: imageMimeType,
+        filename: imageFilename
+      })
+      .then(function(res) {
+        if (res.success) {
+          alert('ส่งข้อมูลและหลักฐานเรียบร้อยแล้ว!');
+          closeLiff();
+        } else {
+          alert('เกิดข้อผิดพลาด: ' + res.message);
+          btn.innerHTML = 'ส่งคำตอบ';
+          btn.disabled = false;
+          btn.classList.add('active');
+        }
+      })
+      .catch(function(err) {
+        alert('เกิดข้อผิดพลาด: ' + err.message);
+        btn.innerHTML = 'ส่งคำตอบ';
+        btn.disabled = false;
+        btn.classList.add('active');
+      });
+    });
+  </script>
+</body>
+</html>
